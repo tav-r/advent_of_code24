@@ -8,7 +8,6 @@ import Data.String
 import Data.Either
 import Data.Maybe
 import Data.Vect
-import Debug.Trace
 
 %default total
 
@@ -30,17 +29,11 @@ rowsToNumLists = map transpTupleList . foldlM (\acc => (map (:: acc)) . (takeTwo
     takeTwoWords (w :: w' :: Nil) = Just (w, w')
     takeTwoWords _ = Nothing
 
-    transpMaybeTup : (Maybe a, Maybe a) -> Maybe (a, a)
-    transpMaybeTup ((Just x), (Just y)) = Just (x, y)
-    transpMaybeTup _ = Nothing
-
     parseTwoNums : (String, String) -> Maybe (Nat, Nat)
-    parseTwoNums = transpMaybeTup . bimap parsePositive parsePositive
+    parseTwoNums = bitraverse id id . bimap parsePositive parsePositive
 
     transpTupleList : List (a, a) -> (List a, List a)
-    transpTupleList [] = ([], [])
-    transpTupleList ((x, y) :: xs) =
-      let (ls, rs) = transpTupleList xs in (x :: ls, y :: rs)
+    transpTupleList = foldl (\(ls, rs) => bimap (:: ls) (:: rs)) (Nil, Nil)
 
 diffLists : List Nat -> List Nat -> Nat
 diffLists (x :: xs) (y :: ys) = (minus x y) + (minus y x) + diffLists xs ys
@@ -63,12 +56,9 @@ main = do
   let filePath = (fromMaybe "./input.txt" . head' . drop 1) args
   let nLines = (fromMaybe 10 . (head' >=> parsePositive) . drop 2) args
 
-  -- read file, this generates an Either FileError String
   mInputLines <- withFile filePath FileMode.Read pure (readNLines nLines)
 
-  {-
-    Try taking the right side, if it succeeds, solve the puzzle and show the result,
-    otherwise the file could no be read.
-  -}
-  printLn . fromMaybe "Error reading File" . map show . (getRight >=> solve1) $ mInputLines
-  printLn . fromMaybe "Error reading File" . map show . (getRight >=> solve2) $ mInputLines
+  let errorStr = "Error reading/parsing File"
+
+  printLn . fromMaybe errorStr . map show . (getRight >=> solve1) $ mInputLines
+  printLn . fromMaybe errorStr . map show . (getRight >=> solve2) $ mInputLines
