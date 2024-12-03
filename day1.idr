@@ -48,7 +48,8 @@ main = do
 
   mInputLines <- withFile filePath FileMode.Read pure (readNLines nLines)
 
-  let errorStr = "Error reading/parsing File"
-
-  printLn . fromMaybe errorStr . map show . (getRight >=> solve1) $ mInputLines
-  printLn . fromMaybe errorStr . map show . (getRight >=> solve2) $ mInputLines
+  case mInputLines of
+       (Right input) => do
+         printLn . fromMaybe (-1) . solve1 $ input
+         printLn . fromMaybe (-1) . solve2 $ input
+       (Left _) => printLn "Error reading file"
