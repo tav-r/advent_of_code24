@@ -22,21 +22,23 @@ readNLines (S n) f = do
     recurseWithRes (Right l) = (mapSnd (l ::)) <$> (readNLines n f)
     recurseWithRes (Left e) = pure (Left FileReadError)
 
-solve : Vect n String -> Nat
-solve strs = ?solve_rhs
+solve1 : Vect n String -> Maybe Nat
+solve1 strs = ?a
+
+solve2 : Vect n String -> Maybe Nat
+solve2 strs = ?b
 
 main : IO ()
 main = do
   args <- getArgs
 
-  let filePath = (fromMaybe "./input.txt" . head') args
-  let nLines = (fromMaybe 10 . (head' >=> parsePositive) . drop 1) args
+  let filePath = (fromMaybe "./input.txt" . head' . drop 1) args
+  let nLines = (fromMaybe 10 . (head' >=> parsePositive) . drop 2) args
 
-  -- read file, this generates an Either FileError String
   mInputLines <- withFile filePath FileMode.Read pure (readNLines nLines)
 
-  {-
-    Try taking the right side, if it succeeds, solve the puzzle and show the result,
-    otherwise the file could no be read.
-  -}
-  printLn . fromMaybe "Error reading File" . (map (show . solve) . getRight) $ mInputLines
+  case mInputLines of
+     (Right input) => do
+       printLn . fromMaybe (-1) . solve1 $ input
+       printLn . fromMaybe (-1) . solve2 $ input
+     (Left _) => printLn "Error reading file"
