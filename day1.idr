@@ -1,5 +1,4 @@
 import System
-import System.File
 import System.File.ReadWrite
 import System.File.Handle
 import System.File.Mode as FileMode
@@ -22,31 +21,22 @@ readNLines (S n) f = do
     recurseWithRes (Right l) = (mapSnd (l ::)) <$> (readNLines n f)
     recurseWithRes (Left e) = pure (Left FileReadError)
 
-rowsToNumLists : Foldable f => f String -> Maybe (List Nat, List Nat)
-rowsToNumLists = map transpTupleList . foldlM (\acc => (map (:: acc)) . (takeTwoWords >=> parseTwoNums) . words) []
-  where
-    takeTwoWords : List String -> Maybe (String, String)
-    takeTwoWords (w :: w' :: Nil) = Just (w, w')
-    takeTwoWords _ = Nothing
-
-    parseTwoNums : (String, String) -> Maybe (Nat, Nat)
-    parseTwoNums = bitraverse id id . bimap parsePositive parsePositive
-
-    transpTupleList : List (a, a) -> (List a, List a)
-    transpTupleList = foldl (\(ls, rs) => bimap (:: ls) (:: rs)) (Nil, Nil)
+rowsToNumLists : {len : Nat} -> Vect len String -> Maybe (Vect len Nat, Vect len Nat)
+rowsToNumLists ss = do
+  wordTuples <- traverse (bitraverse head' (head' . drop 1) . dup . words) ss
+  numTuples <- traverse (bitraverse parsePositive parsePositive) wordTuples
+  pure $ ([x | (x, _) <- numTuples], [y | (_, y) <- numTuples])
 
 diffLists : List Nat -> List Nat -> Nat
-diffLists (x :: xs) (y :: ys) = (minus x y) + (minus y x) + diffLists xs ys
-diffLists _ _ = 0
+diffLists xs ys = sum [x + y | x <- xs, y <- ys]
 
-similarityScore : List Nat -> List Nat -> Nat
-similarityScore (x :: xs) ys = x * (count (==x) ys) + (similarityScore xs ys)
-similarityScore _ _ = 0
+similarityScore : {len : Nat} -> Vect len Nat -> Vect len Nat -> Nat
+similarityScore xs ys = sum [x * (count (==x) ys) | x <- xs]
 
-solve1 : Vect n String -> Maybe Nat
-solve1 = map (uncurry diffLists . bimap sort sort) . rowsToNumLists
+solve1 : {len : Nat} -> Vect len String -> Maybe Nat
+solve1 = map (uncurry diffLists . bimap (sort . toList) (sort . toList)) . rowsToNumLists
 
-solve2 : Vect n String -> Maybe Nat
+solve2 : {len : Nat} -> Vect len String -> Maybe Nat
 solve2 = map (uncurry similarityScore) . rowsToNumLists
 
 main : IO ()
